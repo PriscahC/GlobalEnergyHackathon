@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pamoja Cell Demo</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one calm working page. Header, grade form beside passport, CSV import, fleet beside site map, rules and assumptions below. */
+:root {
+  --bg: #f2f6f4;
+  --surface: #ffffff;
+  --fg: #14231f;
+  --muted: #566a64;
+  --line: #d3dfda;
+  --accent: #0f766e;
+  --accent-fg: #ffffff;
+  --a-fg: #166534; --a-bg: #e1f3e6;
+  --b-fg: #9a5b06; --b-bg: #fbefd0;
+  --r-fg: #b42318; --r-bg: #fbe3e0;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1714; --surface: #14231f; --fg: #e5eeeb; --muted: #94a9a2; --line: #27403a;
+    --accent: #2dd4bf; --accent-fg: #04201c;
+    --a-fg: #6ee7a0; --a-bg: #12301f;
+    --b-fg: #fbbf24; --b-bg: #38290a;
+    --r-fg: #fca5a5; --r-bg: #3c1613;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1714; --surface: #14231f; --fg: #e5eeeb; --muted: #94a9a2; --line: #27403a;
+  --accent: #2dd4bf; --accent-fg: #04201c;
+  --a-fg: #6ee7a0; --a-bg: #12301f;
+  --b-fg: #fbbf24; --b-bg: #38290a;
+  --r-fg: #fca5a5; --r-bg: #3c1613;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+  padding-block: 20px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+header { display: flex; flex-direction: column; gap: 6px; padding-bottom: 4px; }
+.eyebrow { font-family: var(--font-data); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-size: clamp(26px, 4vw, 34px); line-height: 1.1; margin: 0; font-weight: 600; text-wrap: balance; }
+.lede { margin: 0; color: var(--muted); max-width: 62ch; }
+.row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 760px) { .row { grid-template-columns: minmax(0, 1fr); } }
+section { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+h2 { margin: 0; font-size: 16px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.badge { font-family: var(--font-data); font-size: 11px; letter-spacing: .04em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; background: var(--b-bg); color: var(--b-fg); white-space: nowrap; }
+.badge.real { background: var(--a-bg); color: var(--a-fg); }
+form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field.wide { grid-column: 1 / -1; }
+label { font-size: 12px; color: var(--muted); }
+input, select, textarea {
+  font: inherit; font-family: var(--font-data); font-size: 14px; color: var(--fg); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; width: 100%; min-width: 0;
+}
+textarea { resize: vertical; }
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, tr.click:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.actions { grid-column: 1 / -1; display: flex; gap: 10px; flex-wrap: wrap; }
+button {
+  font: inherit; font-weight: 500; font-size: 14px; border-radius: 6px; padding: 9px 14px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--surface); color: var(--fg);
+}
+button.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+button:disabled { opacity: .5; cursor: default; }
+.result { border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 6px; border: 1px solid var(--line); background: var(--bg); }
+.result .top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.grade { font-size: 28px; font-weight: 600; line-height: 1; padding: 8px 14px; border-radius: 6px; }
+.g-A { background: var(--a-bg); color: var(--a-fg); }
+.g-B { background: var(--b-bg); color: var(--b-fg); }
+.g-Reject { background: var(--r-bg); color: var(--r-fg); }
+.dest { font-weight: 500; }
+.reason, .small { color: var(--muted); font-size: 13px; margin: 0; }
+.mono { font-family: var(--font-data); }
+.passport { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+.qr { background: #fff; padding: 8px; border-radius: 6px; border: 1px solid var(--line); width: 148px; height: 148px; display: flex; align-items: center; justify-content: center; flex: none; }
+.qr img, .qr canvas { max-width: 100%; height: auto; }
+.qr.empty { color: #555; font-size: 12px; text-align: center; }
+dl { margin: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 14px; font-size: 13px; flex: 1; min-width: 180px; }
+dt { color: var(--muted); }
+dd { margin: 0; font-family: var(--font-data); overflow-wrap: anywhere; }
+.pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-family: var(--font-data); }
+.bars { display: flex; flex-direction: column; gap: 10px; }
+.bar { display: grid; grid-template-columns: 96px minmax(0, 1fr) 34px; gap: 10px; align-items: center; font-size: 13px; }
+.track { background: var(--bg); border-radius: 4px; height: 18px; overflow: hidden; border: 1px solid var(--line); }
+.fill { height: 100%; border-radius: 3px 0 0 3px; transition: width .4s; }
+.f-A { background: var(--a-fg); } .f-B { background: var(--b-fg); } .f-Reject { background: var(--r-fg); }
+.count { font-family: var(--font-data); text-align: right; }
+.feed-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.spark { width: 100%; height: auto; display: block; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
+.alerts { display: flex; flex-direction: column; gap: 8px; }
+.alert { border-radius: 6px; padding: 8px 10px; font-size: 13px; }
+.alert.amber { background: var(--b-bg); color: var(--b-fg); }
+.alert.red { background: var(--r-bg); color: var(--r-fg); }
+.sms { font-family: var(--font-data); font-size: 12px; background: var(--bg); border: 1px dashed var(--line); border-radius: 6px; padding: 8px 10px; }
+.legend { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.map { width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 8px; }
+.map g[data-id]:focus-visible circle:first-of-type { stroke: var(--accent); stroke-width: 2; }
+.pulse { transform-box: fill-box; transform-origin: center; animation: pulse 1.4s ease-out infinite; }
+@keyframes pulse { from { transform: scale(1); opacity: .9; } to { transform: scale(2.3); opacity: 0; } }
+.unit-detail { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+.csvctl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 760px) { .csvctl { grid-template-columns: minmax(0, 1fr); } }
+.csvtable { max-height: 280px; overflow: auto; border: 1px solid var(--line); border-radius: 6px; }
+.csvtable:empty { display: none; }
+tr.click { cursor: pointer; }
+tr.click:hover td, tr.click:focus-visible td { background: var(--bg); }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 500; color: var(--muted); font-size: 12px; }
+.scroll { overflow-x: auto; }
+details { font-size: 13px; color: var(--muted); }
+details summary { cursor: pointer; color: var(--fg); font-weight: 500; }
+details ul { margin: 8px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+footer { font-size: 12px; color: var(--muted); max-width: 80ch; }
+@media (prefers-reduced-motion: reduce) { .fill { transition: none; } .pulse { animation: none; } }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+.chip { font-size: 13px; padding: 6px 10px; }
+.ai-out { white-space: pre-wrap; }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Global Energy Hackathon 2026 &middot; Brief 02</div>
+    <h1>Pamoja Cell</h1>
+    <p class="lede">Grade a retired e-motorcycle battery pack from tester readings, send it to the load it can safely carry, and track it with a QR passport. Grading uses fixed rules you can read below. No AI makes the safety call.</p>
+  </header>
+
+  <div class="row">
+    <section aria-labelledby="h-test">
+      <h2 id="h-test">1. Test a pack <span class="badge">Sample values</span></h2>
+      <form id="packForm" autocomplete="off">
+        <div class="field"><label for="packId">Pack ID</label><input id="packId" value="PC-0137"></div>
+        <div class="field"><label for="soh">State of health (%)</label><input id="soh" type="number" min="0" max="100" step="1" value="62"></div>
+        <div class="field"><label for="rise">Resistance rise vs new (%)</label><input id="rise" type="number" min="0" max="500" step="1" value="70"></div>
+        <div class="field"><label for="temp">Peak temperature (&deg;C)</label><input id="temp" type="number" min="0" max="120" step="1" value="41"></div>
+        <div class="field"><label for="damage">Visible damage</label>
+          <select id="damage"><option value="none">None</option><option value="swelling">Swelling</option><option value="leak">Leak</option></select></div>
+        <div class="field"><label for="load">Load to power (W)</label><input id="load" type="number" min="1" step="1" value="21"></div>
+        <div class="actions">
+          <button type="submit" class="primary" id="gradeBtn">Grade pack</button>
+          <button type="button" id="sampleBtn">Load next sample pack</button>
+        </div>
+      </form>
+      <div class="result" id="result" aria-live="polite"></div>
+    </section>
+
+    <section aria-labelledby="h-pass">
+      <h2 id="h-pass">2. Pack passport <span class="badge">Simulated tracking</span></h2>
+      <div class="passport">
+        <div class="qr empty" id="qr">QR appears after grading</div>
+        <dl id="passportData"></dl>
+      </div>
+      <p class="small">The QR carries the pack ID, grade and readings. In the full design it opens the pack's history: test, grade, deployment, alerts, recycler handoff. The operator keeps ownership.</p>
+      <div class="actions" style="display:flex">
+        <button type="button" id="addBtn" disabled>Add to fleet</button>
+      </div>
+    </section>
+  </div>
+
+  <section aria-labelledby="h-csv">
+    <h2 id="h-csv">3. Import recorded results (CSV) <span class="badge" id="csvBadge">CSV import</span></h2>
+    <div class="csvctl">
+      <div class="field"><label for="csvFile">Upload a CSV file</label><input id="csvFile" type="file" accept=".csv,.txt,text/csv"></div>
+      <div class="field"><label for="csvText">Or paste CSV text</label><textarea id="csvText" rows="3" placeholder="pack_id,soh,resistance_rise_pct,peak_temp_c,damage"></textarea></div>
+      <div class="actions">
+        <button type="button" id="csvPasteBtn">Grade pasted rows</button>
+        <button type="button" id="csvExampleBtn">Load example rows</button>
+        <button type="button" id="csvAddBtn" disabled>Add all to fleet</button>
+      </div>
+    </div>
+    <p class="small">Columns: pack_id, soh, resistance_rise_pct, peak_temp_c, and optionally damage (none, swelling, leak). Header names are matched loosely. Click a row to open that pack in the grader.</p>
+    <p class="small mono" id="csvStatus" aria-live="polite"></p>
+    <div class="scroll csvtable" id="csvTable"></div>
+  </section>
+
+  <section aria-labelledby="h-ai">
+    <h2 id="h-ai">Ask Grok about this pack <span class="badge" id="aiBadge">Checking AI</span></h2>
+    <p class="small">Grok explains the result in plain language and suggests checks. It never changes the grade: grading is done by the fixed rules below.</p>
+    <div class="actions" style="display:flex">
+      <button type="button" class="chip" data-q="Explain this grade in plain language.">Explain this grade</button>
+      <button type="button" class="chip" data-q="What should the technician check before this pack is deployed?">Technician checks</button>
+      <button type="button" class="chip" data-q="Can this pack run a 200 W cold room for 6 hours?">200 W for 6 h?</button>
+    </div>
+    <div class="field"><label for="aiQ">Your question about the pack in the grader</label><textarea id="aiQ" rows="2" maxlength="500" placeholder="Ask anything about the pack above"></textarea></div>
+    <div class="actions" style="display:flex"><button type="button" class="primary" id="aiBtn">Ask Grok</button></div>
+    <div class="unit-detail ai-out" id="aiOut" aria-live="polite">Grade a pack above, then ask a question.</div>
+  </section>
+
+  <div class="row">
+    <section aria-labelledby="h-fleet">
+      <h2 id="h-fleet">4. Fleet by grade <span class="badge">Simulated data</span></h2>
+      <div class="bars" id="bars"></div>
+      <p class="small" id="fleetNote"></p>
+    </section>
+
+    <section aria-labelledby="h-live">
+      <h2 id="h-live">5. Live monitoring map <span class="badge">Simulated data</span></h2>
+      <div class="legend"><span class="pill g-A">Healthy</span><span class="pill g-B">Amber</span><span class="pill g-Reject">Red, isolated</span><span class="small">Tap a site for details</span></div>
+      <svg id="siteMap" class="map" viewBox="0 0 400 300" role="group" aria-label="Schematic map of five deployed units"></svg>
+      <div class="unit-detail" id="unitDetail" aria-live="polite"></div>
+      <div class="feed-head">
+        <button type="button" class="primary" id="feedBtn">Run live feed</button>
+        <span class="pill g-A" id="statusPill">Unit normal</span>
+        <span class="mono small" id="tempNow">Pack 3: 36.0 &deg;C</span>
+      </div>
+      <svg class="spark" viewBox="0 0 300 90" role="img" aria-label="Pack 3 temperature over time with amber and red thresholds">
+        <line x1="0" y1="30" x2="300" y2="30" stroke="var(--r-fg)" stroke-width="1" stroke-dasharray="4 4"/>
+        <line x1="0" y1="45" x2="300" y2="45" stroke="var(--b-fg)" stroke-width="1" stroke-dasharray="4 4"/>
+        <text x="4" y="26" font-size="9" fill="var(--r-fg)" font-family="IBM Plex Mono, monospace">cutoff 58</text>
+        <text x="4" y="41" font-size="9" fill="var(--b-fg)" font-family="IBM Plex Mono, monospace">amber 48</text>
+        <polyline id="line" fill="none" stroke="var(--accent)" stroke-width="2" points=""/>
+      </svg>
+      <div class="alerts" id="alerts"></div>
+      <p class="small">Press Run live feed and watch Kiosk 12 on the map. The thermal cutoff acts on the unit itself. The SMS only informs the kiosk owner and the technician. Map is schematic and locations are illustrative.</p>
+    </section>
+  </div>
+
+  <section aria-labelledby="h-rules">
+    <h2 id="h-rules">Grading rules <span class="badge">Provisional</span></h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Grade</th><th>Rule</th><th>Where it goes</th></tr></thead>
+        <tbody>
+          <tr><td><span class="pill g-A">A</span></td><td class="mono">SOH &ge; 70% and resistance rise &le; 50%, no damage</td><td>Cold storage and clinics</td></tr>
+          <tr><td><span class="pill g-B">B</span></td><td class="mono">SOH 50 to under 70%, or resistance rise 50 to 100%</td><td>Kiosk power and lighting</td></tr>
+          <tr><td><span class="pill g-Reject">Reject</span></td><td class="mono">SOH under 50%, resistance rise over 100%, peak temperature over 60&deg;C, or any swelling or leak</td><td>Recycler</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <details>
+      <summary>Sources and assumptions</summary>
+      <ul>
+        <li>Retired mobility packs are commonly pulled near 80% state of health or a 200% resistance rise, and fade turns non-linear in the 80 to 70% zone (TWAICE end-of-life guide). Cutoffs in this demo are adapted to that and are provisional until calibrated on field data.</li>
+        <li>A three-tier split around 80% and 50% state of health is widely used, with exact cutoffs varying by organization (arXiv 2512.01294 review of retired lithium-ion diagnostics).</li>
+        <li>Backup hours = 2.0 kWh rated energy x SOH x 80% depth of discharge x 90% inverter efficiency, divided by the load. The 2 kWh figure matches the older Spiro Commando pack. Depth of discharge, efficiency and the 60&deg;C limit are assumptions.</li>
+        <li>The 21 W default load follows Kenyan off-grid small-business averages of 13 to 21 W (Dauenhauer and Louie, 2015). A cold room needs a much larger load; enter it above.</li>
+        <li>IEC 62619:2022 covers first-life batteries and leaves reuse out of scope, so no second-life safety standard exists yet. This is the gap the passport and protocol address.</li>
+        <li>The site map is schematic. Site names and positions are illustrative, not real deployments.</li>
+      </ul>
+    </details>
+  </section>
+
+  <footer>Hackathon prototype. Thresholds are provisional. The fleet chart, site map and live feed are simulated. Real battery tester readings are shown in the demo video, or can be imported above from a CSV. AI explanations use xAI Grok when the server is connected, and never change a grade.</footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+(function () {
+  var RULES = { aSoh: 70, aRise: 50, bSoh: 50, bRise: 100, tempMax: 60 };
+  var RATED_KWH = 2.0, DOD = 0.8, EFF = 0.9;
+  var DEST = { A: 'Cold storage and clinics', B: 'Kiosk power and lighting', Reject: 'Recycler' };
+
+  function gradePack(p) {
+    if (p.damage !== 'none') return { g: 'Reject', why: 'Visible ' + p.damage + '. Hard reject rule applies whatever the readings say.' };
+    if (p.temp > RULES.tempMax) return { g: 'Reject', why: 'Peak temperature ' + p.temp + ' °C is over the ' + RULES.tempMax + ' °C limit.' };
+    if (p.soh < RULES.bSoh) return { g: 'Reject', why: 'State of health ' + p.soh + '% is under the ' + RULES.bSoh + '% floor.' };
+    if (p.rise > RULES.bRise) return { g: 'Reject', why: 'Resistance is up ' + p.rise + '%, over the ' + RULES.bRise + '% limit.' };
+    if (p.soh >= RULES.aSoh && p.rise <= RULES.aRise) return { g: 'A', why: 'SOH ' + p.soh + '% and resistance rise ' + p.rise + '% are inside the Grade A limits, so it can back a cold room.' };
+    var parts = [];
+    if (p.soh < RULES.aSoh) parts.push('SOH ' + p.soh + '% is under ' + RULES.aSoh + '%');
+    if (p.rise > RULES.aRise) parts.push('resistance rise ' + p.rise + '% is over ' + RULES.aRise + '%');
+    return { g: 'B', why: parts.join(' and ') + ', so Grade B: suitable for kiosk loads, not for cold storage.' };
+  }
+  function backupHours(soh, loadW) { return (RATED_KWH * 1000 * (soh / 100) * DOD * EFF) / loadW; }
+
+  var SAMPLES = [
+    { id: 'PC-0137', soh: 62, rise: 70, temp: 41, damage: 'none', load: 21 },
+    { id: 'PC-0212', soh: 76, rise: 35, temp: 38, damage: 'none', load: 150 },
+    { id: 'PC-0098', soh: 58, rise: 40, temp: 44, damage: 'swelling', load: 21 }
+  ];
+  var sampleIdx = 0;
+
+  function $(id) { return document.getElementById(id); }
+  function readForm() {
+    return {
+      id: $('packId').value.trim() || 'PC-0000',
+      soh: Number($('soh').value), rise: Number($('rise').value), temp: Number($('temp').value),
+      damage: $('damage').value, load: Math.max(1, Number($('load').value) || 21)
+    };
+  }
+  function fillForm(s) {
+    $('packId').value = s.id; $('soh').value = s.soh; $('rise').value = s.rise;
+    $('temp').value = s.temp; $('damage').value = s.damage; $('load').value = s.load;
+  }
+
+  var lastGraded = null;
+
+  function render() {
+    var p = readForm();
+    var r = gradePack(p);
+    var hours = r.g === 'Reject' ? null : backupHours(p.soh, p.load);
+    lastGraded = { p: p, r: r, hours: hours };
+    var el = $('result');
+    el.innerHTML = '';
+    var top = document.createElement('div'); top.className = 'top';
+    var g = document.createElement('div'); g.className = 'grade g-' + r.g; g.textContent = r.g === 'Reject' ? 'Reject' : 'Grade ' + r.g;
+    var d = document.createElement('div'); d.className = 'dest'; d.textContent = '→ ' + DEST[r.g];
+    top.appendChild(g); top.appendChild(d);
+    var why = document.createElement('p'); why.className = 'reason'; why.textContent = r.why;
+    var hrs = document.createElement('p'); hrs.className = 'mono small';
+    hrs.textContent = hours === null ? 'Not deployed. Pack goes to the recycler with a recorded handoff.' : 'Estimated backup: ' + hours.toFixed(1) + ' h at ' + p.load + ' W';
+    el.appendChild(top); el.appendChild(why); el.appendChild(hrs);
+    renderPassport(p, r);
+    $('addBtn').disabled = false;
+  }
+
+  function renderPassport(p, r) {
+    var date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    var payload = 'PAMOJA-CELL|' + p.id + '|' + r.g + '|SOH' + p.soh + '|R+' + p.rise + '|T' + p.temp + '|' + date;
+    var qr = $('qr'); qr.innerHTML = ''; qr.className = 'qr';
+    try {
+      if (typeof QRCode === 'undefined') throw new Error('no qr lib');
+      new QRCode(qr, { text: payload, width: 128, height: 128, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+    } catch (e) { qr.className = 'qr empty'; qr.textContent = 'QR library did not load'; }
+    var status = r.g === 'Reject' ? ['Retired', 'g-Reject'] : (r.g === 'B' ? ['Amber watch', 'g-B'] : ['Green', 'g-A']);
+    var site = r.g === 'A' ? 'Cold room 4' : (r.g === 'B' ? 'Kiosk 12' : 'Recycler intake');
+    var rows = [
+      ['Pack ID', p.id], ['Grade', r.g], ['SOH', p.soh + '%'], ['Resistance', '+' + p.rise + '% vs new'],
+      ['Peak temp', p.temp + ' °C'], ['Tested', date], ['Owner', 'Operator'], ['Site', site]
+    ];
+    var dl = $('passportData'); dl.innerHTML = '';
+    rows.forEach(function (row) {
+      var dt = document.createElement('dt'); dt.textContent = row[0];
+      var dd = document.createElement('dd'); dd.textContent = row[1];
+      dl.appendChild(dt); dl.appendChild(dd);
+    });
+    var dt2 = document.createElement('dt'); dt2.textContent = 'Status';
+    var dd2 = document.createElement('dd'); var pill = document.createElement('span'); pill.className = 'pill ' + status[1]; pill.textContent = status[0]; dd2.appendChild(pill);
+    dl.appendChild(dt2); dl.appendChild(dd2);
+  }
+
+  /* Simulated fleet: 30 packs, seeded so the chart is the same on every load. */
+  function rng(seed) { return function () { seed |= 0; seed = seed + 0x6D2B79F5 | 0; var t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  var counts = { A: 0, B: 0, Reject: 0 };
+  (function seedFleet() {
+    var rand = rng(42);
+    for (var i = 0; i < 30; i++) {
+      var soh = Math.round(55 + rand() * 25);
+      var rise = Math.round(20 + (80 - soh) * 2.2 + rand() * 30);
+      var damage = rand() < 0.07 ? 'swelling' : 'none';
+      var temp = Math.round(34 + rand() * 12);
+      counts[gradePack({ soh: soh, rise: rise, temp: temp, damage: damage }).g]++;
+    }
+  })();
+  var addedCount = 0;
+  function total() { return counts.A + counts.B + counts.Reject; }
+  function renderBars() {
+    var t = total();
+    var host = $('bars'); host.innerHTML = '';
+    ['A', 'B', 'Reject'].forEach(function (k) {
+      var row = document.createElement('div'); row.className = 'bar';
+      var lab = document.createElement('div'); lab.textContent = k === 'Reject' ? 'Reject' : 'Grade ' + k;
+      var track = document.createElement('div'); track.className = 'track';
+      var fill = document.createElement('div'); fill.className = 'fill f-' + k; fill.style.width = (t ? counts[k] / t * 100 : 0) + '%';
+      track.appendChild(fill);
+      var c = document.createElement('div'); c.className = 'count'; c.textContent = counts[k];
+      row.appendChild(lab); row.appendChild(track); row.appendChild(c);
+      host.appendChild(row);
+    });
+    var diverted = t ? Math.round((counts.A + counts.B) / t * 100) : 0;
+    $('fleetNote').textContent = t + ' packs, ' + diverted + '% given a second life instead of going to waste' + (addedCount ? ' (including ' + addedCount + ' you added).' : '.');
+  }
+  $('addBtn').addEventListener('click', function () {
+    if (!lastGraded) return;
+    counts[lastGraded.r.g]++; addedCount++;
+    renderBars();
+    this.disabled = true;
+  });
+
+  $('packForm').addEventListener('submit', function (e) { e.preventDefault(); render(); });
+  $('sampleBtn').addEventListener('click', function () {
+    fillForm(SAMPLES[sampleIdx]); sampleIdx = (sampleIdx + 1) % SAMPLES.length; render();
+  });
+
+  /* Simulated live feed for one deployed unit (Kiosk 12, Pack 3). */
+  var timer = null, temps = [], alertsShown = { amber: false, red: false };
+  var T_MIN = 30, T_MAX = 70;
+  function drawLine() {
+    refreshDetail();
+    var pts = temps.map(function (t, i) {
+      var x = i / 39 * 300;
+      var y = 90 - (Math.min(T_MAX, Math.max(T_MIN, t)) - T_MIN) / (T_MAX - T_MIN) * 90;
+      return x.toFixed(1) + ',' + y.toFixed(1);
+    });
+    $('line').setAttribute('points', pts.join(' '));
+  }
+  function setStatus(text, cls) {
+    var s = $('statusPill'); s.textContent = text; s.className = 'pill ' + cls;
+    setUnitState(cls === 'g-Reject' ? 'red' : (cls === 'g-B' ? 'amber' : 'ok'));
+  }
+  function addAlert(cls, text, sms) {
+    var box = document.createElement('div'); box.className = 'alert ' + cls; box.textContent = text;
+    var host = $('alerts'); host.prepend(box);
+    if (sms) { var s = document.createElement('div'); s.className = 'sms'; s.textContent = 'SMS to kiosk owner and technician: ' + sms; box.after(s); }
+  }
+  function resetFeed() {
+    temps = [36]; alertsShown = { amber: false, red: false };
+    $('alerts').innerHTML = ''; setStatus('Unit normal', 'g-A');
+    $('tempNow').textContent = 'Pack 3: 36.0 °C'; drawLine();
+  }
+  $('feedBtn').addEventListener('click', function () {
+    var btn = this;
+    if (timer) { clearInterval(timer); timer = null; btn.textContent = 'Run live feed'; return; }
+    resetFeed(); btn.textContent = 'Stop feed';
+    selectedUnit = 'k12'; drawMap();
+    timer = setInterval(function () {
+      var last = temps[temps.length - 1];
+      var next = last + 1.6 + Math.random() * 1.4;
+      temps.push(next); if (temps.length > 40) temps.shift();
+      $('tempNow').textContent = 'Pack 3: ' + next.toFixed(1) + ' °C';
+      drawLine();
+      if (next >= 48 && !alertsShown.amber) {
+        alertsShown.amber = true; setStatus('Amber: degrading', 'g-B');
+        addAlert('amber', 'AMBER: Pack 3 temperature rising (' + next.toFixed(0) + ' °C). Reduce load, technician check scheduled.', null);
+      }
+      if (next >= 58 && !alertsShown.red) {
+        alertsShown.red = true; setStatus('Red: unit isolated', 'g-Reject');
+        addAlert('red', 'RED: Pack 3 overheating (' + next.toFixed(0) + ' °C). Thermal cutoff tripped, pack isolated.', 'PAMOJA CELL: Pack 3 overheating, unit shut down. Call technician.');
+        clearInterval(timer); timer = null; btn.textContent = 'Run live feed again';
+      }
+    }, 600);
+  });
+
+  /* Schematic site map. No map tiles load in this page, so roads and sites are drawn by hand. */
+  var UNITS = [
+    { id: 'k12', name: 'Kiosk 12', kind: 'Kiosk', x: 118, y: 92, packs: 3 },
+    { id: 'c4', name: 'Cold room 4', kind: 'Cold room', x: 262, y: 74, packs: 2 },
+    { id: 'k7', name: 'Kiosk 7', kind: 'Kiosk', x: 322, y: 172, packs: 2 },
+    { id: 'k3', name: 'Kiosk 3', kind: 'Kiosk', x: 82, y: 204, packs: 3 },
+    { id: 'c9', name: 'Cold room 9', kind: 'Cold room', x: 214, y: 232, packs: 2 }
+  ];
+  var unitState = 'ok', selectedUnit = 'k12';
+  var STATE_COLOR = { ok: 'var(--a-fg)', amber: 'var(--b-fg)', red: 'var(--r-fg)' };
+  var STATUS_TEXT = { ok: 'Healthy', amber: 'Amber, degrading', red: 'Red, unit isolated' };
+  var STATUS_CLASS = { ok: 'g-A', amber: 'g-B', red: 'g-Reject' };
+
+  function drawMap() {
+    var s = '<rect x="0" y="0" width="400" height="300" fill="var(--bg)"/>';
+    s += '<g stroke="var(--line)" fill="none" stroke-linecap="round">';
+    s += '<path d="M0 150 C100 130 200 170 400 140" stroke-width="7"/>';
+    s += '<path d="M150 0 C160 100 140 200 170 300" stroke-width="7"/>';
+    s += '<path d="M0 60 L400 40" stroke-width="3"/><path d="M0 255 L400 272" stroke-width="3"/><path d="M285 0 L302 300" stroke-width="3"/>';
+    s += '</g>';
+    UNITS.forEach(function (u) {
+      var st = u.id === 'k12' ? unitState : 'ok';
+      var col = STATE_COLOR[st];
+      var at = 'cx="' + u.x + '" cy="' + u.y + '"';
+      s += '<g data-id="' + u.id + '" tabindex="0" role="button" aria-label="' + u.name + ', ' + STATUS_TEXT[st] + '" style="cursor:pointer">';
+      s += '<circle ' + at + ' r="11" fill="' + col + '"/>';
+      if (st === 'red') s += '<circle class="pulse" ' + at + ' r="11" fill="none" stroke="' + col + '" stroke-width="2"/>';
+      if (u.id === selectedUnit) s += '<circle ' + at + ' r="18" fill="none" stroke="var(--fg)" stroke-width="1.5" stroke-dasharray="3 3"/>';
+      var glyph = st === 'red' ? '!' : (st === 'amber' ? '!' : (u.kind === 'Kiosk' ? 'K' : 'C'));
+      s += '<text x="' + u.x + '" y="' + (u.y + 4) + '" text-anchor="middle" font-size="11" font-weight="600" fill="var(--surface)" font-family="IBM Plex Mono, monospace">' + glyph + '</text>';
+      s += '<text x="' + u.x + '" y="' + (u.y + 30) + '" text-anchor="middle" font-size="10" fill="var(--fg)" font-family="IBM Plex Sans, sans-serif">' + u.name + '</text>';
+      s += '</g>';
+    });
+    s += '<text x="8" y="292" font-size="9" fill="var(--muted)" font-family="IBM Plex Mono, monospace">Schematic map, locations illustrative</text>';
+    $('siteMap').innerHTML = s;
+  }
+  function refreshDetail() {
+    var u = UNITS.filter(function (x) { return x.id === selectedUnit; })[0];
+    var st = u.id === 'k12' ? unitState : 'ok';
+    var box = $('unitDetail'); box.innerHTML = '';
+    var h = document.createElement('div'); h.className = 'mono';
+    h.textContent = u.name + ' · ' + u.kind + ' · ' + u.packs + ' packs ';
+    var pill = document.createElement('span'); pill.className = 'pill ' + STATUS_CLASS[st]; pill.textContent = STATUS_TEXT[st];
+    h.appendChild(pill);
+    var info = document.createElement('p'); info.className = 'small';
+    if (u.id === 'k12') {
+      var t = temps.length ? temps[temps.length - 1] : 36;
+      info.textContent = 'Pack 3: ' + t.toFixed(1) + ' °C. ' + (st === 'red' ? 'Thermal cutoff tripped, pack isolated, SMS sent to the kiosk owner and technician.' : (st === 'amber' ? 'Temperature rising, reduce load.' : 'All three packs are within limits.'));
+    } else {
+      info.textContent = 'All packs within limits. Graded A or B at test, no alerts.';
+    }
+    box.appendChild(h); box.appendChild(info);
+  }
+  function setUnitState(state) { unitState = state; drawMap(); refreshDetail(); }
+  function pickUnit(e) {
+    var g = e.target.closest ? e.target.closest('[data-id]') : null;
+    if (!g) return;
+    selectedUnit = g.getAttribute('data-id'); drawMap(); refreshDetail();
+  }
+  $('siteMap').addEventListener('click', pickUnit);
+  $('siteMap').addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pickUnit(e); } });
+
+  /* CSV import: grade many recorded packs at once. */
+  var csvGraded = [];
+  var EXAMPLE_CSV = 'pack_id,soh,resistance_rise_pct,peak_temp_c,damage\nPC-0101,76,32,38,none\nPC-0102,72,45,41,none\nPC-0103,66,60,40,none\nPC-0104,61,85,43,none\nPC-0105,55,70,42,none\nPC-0106,47,60,39,none\nPC-0107,70,40,66,none\nPC-0108,68,38,40,swelling';
+  var ALIASES = {
+    id: ['packid', 'id', 'pack', 'batteryid', 'serial'],
+    soh: ['soh', 'stateofhealth', 'health'],
+    rise: ['resistancerisepct', 'resistancerise', 'rise', 'resistanceincrease', 'irrise'],
+    temp: ['peaktempc', 'peaktemp', 'temperature', 'temp', 'maxtemp'],
+    damage: ['damage', 'visibledamage', 'condition']
+  };
+  function norm(s) { return String(s).toLowerCase().replace(/[^a-z0-9]/g, ''); }
+  function findCol(headers, key) {
+    var list = ALIASES[key], i, j;
+    for (i = 0; i < headers.length; i++) { if (list.indexOf(headers[i]) > -1) return i; }
+    for (i = 0; i < headers.length; i++) { for (j = 0; j < list.length; j++) { if (headers[i].indexOf(list[j]) > -1) return i; } }
+    return -1;
+  }
+  function parseCSV(text, delim) {
+    var rows = [], row = [], cur = '', q = false, i, c;
+    for (i = 0; i < text.length; i++) {
+      c = text.charAt(i);
+      if (q) {
+        if (c === '"') { if (text.charAt(i + 1) === '"') { cur += '"'; i++; } else { q = false; } } else { cur += c; }
+      } else if (c === '"') { q = true; }
+      else if (c === delim) { row.push(cur); cur = ''; }
+      else if (c === '\n' || c === '\r') {
+        if (c === '\r' && text.charAt(i + 1) === '\n') i++;
+        row.push(cur); cur = '';
+        if (row.length > 1 || row[0] !== '') rows.push(row);
+        row = [];
+      } else { cur += c; }
+    }
+    row.push(cur);
+    if (row.length > 1 || row[0] !== '') rows.push(row);
+    return rows;
+  }
+  function openRow(it) { fillForm(it.p); render(); $('h-test').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  function processCSV(text, prefix) {
+    var st = $('csvStatus'), host = $('csvTable');
+    host.innerHTML = ''; csvGraded = []; $('csvAddBtn').disabled = true;
+    var first = (text.split(/\r?\n/)[0]) || '';
+    var delim = ',';
+    if (first.indexOf(',') === -1 && first.indexOf(';') > -1) delim = ';';
+    else if (first.indexOf(',') === -1 && first.indexOf('\t') > -1) delim = '\t';
+    var rows = parseCSV(text, delim);
+    if (rows.length < 2) { st.textContent = 'No data rows found. Include a header row and one row per pack.'; return; }
+    var headers = rows[0].map(norm);
+    var ci = { id: findCol(headers, 'id'), soh: findCol(headers, 'soh'), rise: findCol(headers, 'rise'), temp: findCol(headers, 'temp'), damage: findCol(headers, 'damage') };
+    if (ci.soh < 0 || ci.rise < 0 || ci.temp < 0) { st.textContent = 'Missing columns. Need pack_id, soh, resistance_rise_pct and peak_temp_c (damage is optional).'; return; }
+    var skipped = 0, r;
+    for (r = 1; r < rows.length; r++) {
+      var row = rows[r];
+      var soh = parseFloat(String(row[ci.soh]).replace('%', ''));
+      var rise = parseFloat(String(row[ci.rise]).replace('%', ''));
+      var temp = parseFloat(String(row[ci.temp]));
+      if (isNaN(soh) || isNaN(rise) || isNaN(temp)) { skipped++; continue; }
+      var dmg = ci.damage > -1 ? String(row[ci.damage] || '').toLowerCase() : '';
+      var damage = dmg.indexOf('swell') > -1 ? 'swelling' : (dmg.indexOf('leak') > -1 ? 'leak' : 'none');
+      var pid = (ci.id > -1 && row[ci.id]) ? String(row[ci.id]).trim() : 'Row ' + r;
+      var p = { id: pid, soh: soh, rise: rise, temp: temp, damage: damage, load: 21 };
+      csvGraded.push({ p: p, r: gradePack(p) });
+    }
+    if (!csvGraded.length) { st.textContent = 'No readable rows. Check that soh, resistance rise and temperature are numbers.'; return; }
+    var tally = { A: 0, B: 0, Reject: 0 };
+    csvGraded.forEach(function (it) { tally[it.r.g]++; });
+    st.textContent = (prefix || '') + csvGraded.length + ' packs graded' + (skipped ? ', ' + skipped + ' unreadable rows skipped' : '') + '. Grade A: ' + tally.A + ', Grade B: ' + tally.B + ', Reject: ' + tally.Reject + '.';
+    var tbl = document.createElement('table');
+    tbl.innerHTML = '<thead><tr><th>Pack</th><th>SOH</th><th>Resistance rise</th><th>Peak temp</th><th>Damage</th><th>Grade</th></tr></thead>';
+    var tb = document.createElement('tbody');
+    csvGraded.slice(0, 200).forEach(function (it) {
+      var tr = document.createElement('tr'); tr.className = 'click'; tr.tabIndex = 0;
+      [it.p.id, it.p.soh + '%', '+' + it.p.rise + '%', it.p.temp + ' °C', it.p.damage].forEach(function (v) {
+        var td = document.createElement('td'); td.className = 'mono'; td.textContent = v; tr.appendChild(td);
+      });
+      var tdg = document.createElement('td'); var pl = document.createElement('span');
+      pl.className = 'pill g-' + it.r.g; pl.textContent = it.r.g; tdg.appendChild(pl); tr.appendChild(tdg);
+      tr.addEventListener('click', function () { openRow(it); });
+      tr.addEventListener('keydown', function (e) { if (e.key === 'Enter') openRow(it); });
+      tb.appendChild(tr);
+    });
+    tbl.appendChild(tb); host.appendChild(tbl);
+    $('csvAddBtn').disabled = false;
+  }
+  $('csvFile').addEventListener('change', function () {
+    var f = this.files && this.files[0];
+    if (!f) return;
+    var reader = new FileReader();
+    reader.onload = function () { processCSV(String(reader.result), 'From ' + f.name + ': '); };
+    reader.onerror = function () { $('csvStatus').textContent = 'Could not read that file. Try pasting the rows instead.'; };
+    reader.readAsText(f);
+  });
+  $('csvPasteBtn').addEventListener('click', function () {
+    var t = $('csvText').value.trim();
+    if (!t) { $('csvStatus').textContent = 'Paste CSV text first, header row included.'; return; }
+    processCSV(t, 'From pasted text: ');
+  });
+  $('csvExampleBtn').addEventListener('click', function () { processCSV(EXAMPLE_CSV, 'Example rows, not real measurements. '); });
+  $('csvAddBtn').addEventListener('click', function () {
+    csvGraded.forEach(function (it) { counts[it.r.g]++; });
+    addedCount += csvGraded.length;
+    renderBars();
+    this.disabled = true;
+  });
+
+  /* Grok AI: the browser only talks to this server. The xAI key never reaches the page. */
+  var AI_OFF = 'AI is not connected. Run the server with an xAI key (see README). The rest of the demo works without it.';
+  function askGrok(q) {
+    var out = $('aiOut');
+    if (!q) { out.textContent = 'Type a question first.'; return; }
+    var p = readForm(), r = gradePack(p);
+    var hours = r.g === 'Reject' ? null : backupHours(p.soh, p.load);
+    out.textContent = 'Asking Grok...';
+    $('aiBtn').disabled = true;
+    fetch('/api/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: q, pack: p, grade: r.g, reason: r.why, backupHours: hours })
+    }).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (data) {
+        if (!res.ok) throw new Error(data.error || AI_OFF);
+        return data;
+      });
+    }).then(function (data) {
+      out.textContent = data.answer;
+    }).catch(function (err) {
+      out.textContent = (err instanceof TypeError) ? AI_OFF : err.message;
+    }).then(function () { $('aiBtn').disabled = false; });
+  }
+  $('aiBtn').addEventListener('click', function () { askGrok($('aiQ').value.trim()); });
+  Array.prototype.forEach.call(document.querySelectorAll('.chip'), function (b) {
+    b.addEventListener('click', function () { var q = b.getAttribute('data-q'); $('aiQ').value = q; askGrok(q); });
+  });
+  fetch('/api/status').then(function (res) { return res.json(); }).then(function (s) {
+    $('aiBadge').textContent = s.ai ? 'Grok connected' : 'AI off';
+    $('aiBadge').className = 'badge' + (s.ai ? ' real' : '');
+  }).catch(function () { $('aiBadge').textContent = 'AI off'; });
+
+  drawMap(); renderBars(); resetFeed(); render();
+  processCSV(EXAMPLE_CSV, 'Example rows, not real measurements. ');
+})();
+</script>
+</body>
+</html>

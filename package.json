@@ -1,0 +1,12 @@
+{
+  "name": "pamoja-cell",
+  "version": "1.0.0",
+  "description": "Grading, certification and tracking demo for retired e-motorcycle battery packs (Global Energy Hackathon 2026, Brief 02).",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,88 +1,107 @@
 # Pamoja Cell: Certified Second-Life Packs
+=======
 
 **Global Energy Hackathon 2026 | Brief 02: Second life for e-motorcycle batteries | Track: New Technologies & Hardware**
 
 > Making retired e-motorcycle batteries trustworthy, so they power kiosks and cold rooms instead of ending up in informal dumps.
 
-## The problem
+## The idea
 
-East Africa's e-motorcycle fleet is growing fast (Kenya registered 25,277 electric motorcycles in 2025, about 15% of new motorcycles). Every battery pack will retire from the bike while still holding most of its charge. Today there is no trusted way to know a used pack's health, no second-life safety standard, unclear liability, and no collection route. Small businesses on weak grids lose income to outages, and unsafe informal reuse and dismantling put neighborhoods at risk of fire and toxic exposure.
+A pack's grade decides where it goes. Each retired pack is tested with a commercial battery tester, graded by fixed rules, and sent to the load it can safely carry. Every pack gets a QR passport so its history is tracked until recycling.
 
-The gap is not wiring. It is a missing **trust and safety system**.
-
-## Our solution
-
-A grading, certification and tracking system. **A pack's grade decides where it goes.**
-
-| Grade | Criteria (provisional) | Destination |
+| Grade | Rule (provisional) | Destination |
 |---|---|---|
-| A | Highest state of health, low resistance | Cold storage and clinics |
-| B | Mid state of health | Kiosk power and lighting |
-| Reject | Low SOH or any safety fault (swelling, leak, voltage collapse, overheating) | Recycler |
+| A | SOH 70% or more, resistance rise 50% or less, no damage | Cold storage and clinics |
+| B | SOH 50 to under 70%, or resistance rise 50 to 100% | Kiosk power and lighting |
+| Reject | SOH under 50%, resistance rise over 100%, peak temperature over 60 C, or any swelling or leak | Recycler |
 
-**How it works**
-1. **Test:** each retired pack is tested with a commercial battery tester (voltage, internal resistance, capacity or SOH, temperature). No BMS access is needed, so it works with the data a small workshop actually has.
-2. **Grade:** explicit, auditable rules assign the grade. A hard reject rule overrides everything else.
-3. **Match:** the pack is assigned to the load its grade can safely support.
-4. **Deploy:** protected second-life units with fusing, thermal cutoff, per-pack DC-DC stages (so mixed ages and capacities can run together) and a status LED.
-5. **Track:** every pack gets a QR passport with its test history, grade, owner, site and events, plus SMS alerts when health drops.
-6. **Take back:** end-of-life packs go to a recycler, with a recorded handoff.
+Safety decisions are made by these rules only. AI (Grok) explains results and suggests checks. It never changes a grade.
 
-**Business model:** the operator keeps ownership of the pack. The customer pays a monthly lease for a certified, monitored pack. The operator pays an intake and grading fee, and take-back and recycling add margin. Certification is what makes the lease possible.
+## What the demo does
 
-## What is in this repo
+- Grades a pack from tester readings and shows its destination, the reason, and estimated backup hours.
+- Creates a QR passport for each graded pack.
+- Imports a CSV of recorded results and grades every row (`pack_id, soh, resistance_rise_pct, peak_temp_c, damage`).
+- Shows a simulated fleet, and a schematic site map with a simulated live feed: Kiosk 12 overheats, turns amber, then red, the unit isolates, and a mock SMS appears.
+- Optional: "Ask Grok about this pack" for plain-language explanations.
 
-- **Dashboard app:** enter tester readings manually (or load a sample pack) to get a grade, health score, recommended load, estimated backup hours and a plain-language explanation. It then generates a QR passport and adds the pack to the fleet view. Also includes a live-monitoring simulation with amber and red alerts and mock SMS, a business-model calculator (kiosk and cold-room tiers), and editable grading thresholds.
-- **AI features:** remaining-life prediction with an uncertainty range, anomaly flags for unusual readings (sent to manual check), and a pack Q&A assistant. Safety decisions are made by explicit rules, never by AI.
+## Run it on your computer
+
+You need [Node.js](https://nodejs.org) 18 or newer (check with `node --version`). No packages to install.
+
+```bash
+git clone https://github.com/YOUR-USERNAME/pamoja-cell.git
+cd pamoja-cell
+node server.js
+```
+
+Open http://localhost:3000. Everything works except the Grok panel, which needs a key (next step).
+
+## Turn on Grok
+
+1. Create an API key in the xAI console (https://console.x.ai) and add credits.
+2. Copy the example settings file and edit it:
+   ```bash
+   cp .env.example .env
+   ```
+   Put your key in `XAI_API_KEY=`. Check the exact model name in the xAI docs (https://docs.x.ai) and set `XAI_MODEL=` if the default does not work.
+3. Restart the server with `node server.js`. The panel badge changes to "Grok connected".
+
+The key stays on the server in `.env`, which is git-ignored. Never paste it into `docs/index.html` or commit it. If a key is ever exposed, delete it in the xAI console and create a new one.
+
+## Put it on GitHub
+
+```bash
+git init
+git add .
+git commit -m "Pamoja Cell demo"
+git branch -M main
+git remote add origin https://github.com/YOUR-USERNAME/pamoja-cell.git
+git push -u origin main
+```
+
+Create the empty repository on github.com first (New repository, no README). Check `git status` shows no `.env` before you commit.
+
+## Share it as a link
+
+- **Static demo, no AI (free):** on GitHub open Settings, then Pages, choose branch `main` and folder `/docs`. Your demo appears at `https://YOUR-USERNAME.github.io/pamoja-cell/`. The Grok panel shows "AI off" there, because GitHub Pages cannot keep a secret key.
+- **Demo with Grok:** deploy `server.js` on a Node host such as Render or Railway. Start command `node server.js`. Add `XAI_API_KEY` (and `XAI_MODEL`) in the host's environment settings, not in the code. The server limits questions per minute and per day (`MAX_REQUESTS_PER_DAY`) to protect your credits.
+
+## Project layout
+
+```
+docs/index.html   the demo page (also what GitHub Pages serves)
+server.js         serves the page and forwards AI questions to xAI
+.env.example      settings template
+```
 
 ## Real vs simulated (disclosure)
 
 | Component | Status |
 |---|---|
-| Retired e-bike packs and battery tester grading (video) | **Real**, recorded before the event |
-| Readings from tested packs | **Real**, shown in the "Real test data" tab |
-| Grading and certification protocol and thresholds | Designed; **provisional**, to be calibrated on field data |
-| Fleet of ~500 packs | **Simulated** (SOH mostly 70-80%, about 5% faulty, with sensor noise), labelled in the app |
-| Final pack: BMS, IoT module, GSM alerts, QR passport | **Simulated** (designed, not built) |
-| Dashboard and fleet tracking | **Built during the sprint** |
-| Unit cost and business figures | Placeholders from Pamoja Cell's own cost model; to be validated for the kiosk tier |
+| Battery testing and grading footage | Real, recorded with a commercial battery tester |
+| Grading rules and thresholds | Designed, provisional, to be calibrated on field data |
+| Fleet chart | Simulated (30 packs) |
+| Site map, live feed, SMS alerts | Simulated, locations illustrative |
+| Final pack with BMS, IoT module and QR passport | Designed, simulated in this demo |
+| Demo page and server | Built during the hackathon sprint |
 
-**Prior work:** Pamoja Cell existed before this event (including a working two-pack prototype with BMS displays). Items marked "Real" were recorded before October 30, 2026.
+**Prior work:** Pamoja Cell existed before this event, including a working two-pack prototype with BMS displays.
+**AI tools used:** xAI Grok (in-app explanations), [list any others, e.g. Claude, Lovable]
+**Open-source code and datasets:** QRCode.js (qrcodejs 1.0.0), IBM Plex fonts. Threshold choices draw on published battery end-of-life guidance (TWAICE end-of-life guide; arXiv 2512.01294). IEC 62619:2022 covers first-life batteries and leaves reuse out of scope.
 
-**AI tools used:** [list: e.g. Lovable, Claude]
-**Open-source code and datasets:** [list]
-**Data sources for simulation ranges:** published battery-aging figures [add citations]
+## Limits
 
-## Scoring alignment
-
-- **Impact:** backup hours per retired pack, share of packs diverted from waste
-- **Innovation:** a grade-to-load matching protocol with a QR passport and an ownership and take-back model
-- **Sustainability:** documented second life and end-of-life route, self-funding lease model
-- **Feasibility:** commodity tester and parts, explicit reject rule, mixed-pack protection
-- **Scalability:** test throughput per station and share of a network's retired packs absorbed per year
-
-## Limitations and roadmap
-
-- Grade thresholds are provisional. Field data from a monitored pilot is needed to recalibrate.
-- A quick test estimates health but cannot guarantee how a pack ages. Continuous monitoring covers this.
-- "Certified" currently means our published protocol, aligned to IEC lithium-ion storage safety limits. Formal certification with an accredited body, a national regulator and an insurer is the next step.
-- Operator cooperation is needed for packs locked to proprietary BMS platforms.
-- One test station handles roughly 10 packs a day, so parallel test channels are required at scale.
+- Thresholds are provisional. A quick test estimates health but cannot guarantee how a pack ages, so continuous monitoring is part of the design.
+- Backup hours assume 2.0 kWh rated energy, 80% depth of discharge and 90% inverter efficiency. These are assumptions.
+- "Certified" here means our published protocol. Formal certification with an accredited body, a regulator and an insurer is the next step.
 
 ## Team
 
 | Name | Role |
 |---|---|
 | [Name] | [Role] |
-| [Name] | [Role] |
 
-**Mentor:** [Name] ([LinkedIn])
-
-## Links
-
-- Demo video: [link]
-- Pitch deck: [link]
-- One-page summary: [link]
-- Live app: [link]
+**Mentor:** [Name]
 
 *Built for the Global Energy Hackathon 2026, hosted by Anneru Solutions.*
